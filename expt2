@@ -1,0 +1,368 @@
+2A::Four Way Traffic Light
+
+Algorithm: Four-Way Traffic Light Control with Count-
+down Display
+Step 1: Start
+Step 2: Initialize the System
+• Set all LED pins (Red, Yellow, Green for 4 directions) as OUTPUT.
+• Initialize the TM1637 4-digit 7-segment display and set brightness.
+Step 3: Set LED Logic Arrays
+• Create arrays for RED[], YELLOW[], and GREEN[] for North, East,
+South, and West.
+Step 4: Enter Main Loop
+For each direction in the order: North → East → South → West
+• Turn ON Red LEDs for all directions.
+• Turn OFF Yellow and Green LEDs for all directions.
+• Set RED[Current] = LOW, GREEN[Current] = HIGH.
+• Start 10-second countdown using TM1637 (00:10 to 00:00).
+• Turn OFF Green, turn ON YELLOW[Current].
+• Start 3-second countdown.
+• Turn OFF Yellow, set RED[Current] = HIGH.
+Step 5: Repeat
+• Move to the next direction and continue the cycle.
+Step 6: Countdown Logic (Timer Function)
+• Accept a time value (e.g., 10 or 3 seconds).
+• For each second:
+– Convert to MM:SS format, Display on the TM1637 4-digit dis-
+play, Wait for 1 second.
+Step 7: End
+• The loop continues indefinitely
+
+#include <TM1637Display.h>
+#define CLK A0
+#define DIO A1
+TM1637Display display(CLK, DIO);
+
+int RED[]    = {2, 5, 8, 11};
+int YELLOW[] = {3, 6, 9, 12};
+int GREEN[]  = {4, 7, 10, 13};
+
+#define NUM_DIRECTIONS 4
+
+void setup() {
+  for (int i = 0; i < NUM_DIRECTIONS; i++) {
+    pinMode(RED[i], OUTPUT);
+    pinMode(YELLOW[i], OUTPUT);
+    pinMode(GREEN[i], OUTPUT);
+  }
+
+  display.setBrightness(0x0f);  
+  display.showNumberDec(0, true); 
+}
+
+void loop() {
+  for (int i = 0; i < NUM_DIRECTIONS; i++) {
+
+    for (int j = 0; j < NUM_DIRECTIONS; j++) {
+      digitalWrite(RED[j], HIGH);
+      digitalWrite(YELLOW[j], LOW);
+      digitalWrite(GREEN[j], LOW);
+    }
+
+
+    digitalWrite(RED[i], LOW);
+    digitalWrite(GREEN[i], HIGH);
+    countdownTimer(10); 
+
+   
+    digitalWrite(GREEN[i], LOW);
+    digitalWrite(YELLOW[i], HIGH);
+    countdownTimer(3);
+
+    
+    digitalWrite(YELLOW[i], LOW);
+    digitalWrite(RED[i], HIGH);
+
+    
+    delay(500);
+  }
+}
+
+
+void countdownTimer(int totalSeconds) {
+  for (int sec = totalSeconds; sec >= 0; sec--) {
+    int minutes = sec / 60;
+    int seconds = sec % 60;
+    int displayTime = (minutes * 100) + seconds;
+
+    display.showNumberDecEx(displayTime, 0b01000000, true); 
+    delay(1000);
+  }
+}
+
+
+
+2B:: // objective: Interfacinga16x2LCDtoArduinoUNO/NanoUsing I2C
+//            Protocol
+
+Algorithm
+1. Start
+2. Include include LiquidCrystal_I2C.h by including respective libraries
+3. Set the LCD address to 0x3F for a 16 chars and 2 line display
+4. Initialize LCD by calling fucntion, clear LCD, Make sure backlight is on.
+5. In Loop function
+a. Set cursor to character initial i.e. 0 position on line 1 i.e. by putting value
+0 and Display user define message
+b. Set cursor to character initial i.e. 0 position on line 2 i.e. by putting value
+1 and Display user define message on line 2.
+6. Stop
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// LCD object with I2C address (try 0x27 or 0x3F depending on your module)
+LiquidCrystal_I2C lcd(0x3F, 16, 2);  
+
+void setup() {
+  // Initialize LCD
+  lcd.init();           
+  lcd.backlight();      // Turn on backlight for better visibility
+  lcd.clear();          // Clear any garbage data
+
+  // Display messages
+  lcd.setCursor(0, 0);  // First row, first column
+  lcd.print("Avishkar Rathod");
+
+  lcd.setCursor(0, 1);  // Second row, first column
+  lcd.print("22310769");
+}
+
+void loop() {
+  // Example of using library functions (optional)
+  
+  // Blink cursor demo
+  lcd.setCursor(15, 1);  // Last position second row
+  lcd.blink();
+  delay(2000);
+  
+  lcd.noBlink();
+  lcd.cursor();          // Underscore cursor
+  delay(2000);
+  
+  lcd.noCursor();
+  
+  // Scroll demo (left & right)
+  for (int i = 0; i < 5; i++) {
+    lcd.scrollDisplayLeft();
+    delay(500);
+  }
+  
+  for (int i = 0; i < 5; i++) {
+    lcd.scrollDisplayRight();
+    delay(500);
+  }
+}
+
+
+2C:: Oled Inrterfacing 
+Algorithm
+1. Start
+2. includes all required library
+3. Define OLED display width, and display height, in pixels
+4. Declaration for SSD1306 display connected using I2C
+5. initialize the OLED object
+6. Clear the buffer
+7. Set text size, text color, set cursor position, and Display Text
+8. Display Inverted Text
+9. Changing Font Size
+10. Display Numbers
+11. Scroll full screen
+12. Display image
+13. Display various patterns like square, rectangle, circle etc
+14. Stop
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <avr/pgmspace.h>
+
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_ADDRESS 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+const unsigned char smiley_bmp[] PROGMEM = {
+  0b00111100, 0b00000000,
+  0b01000010, 0b00000000,
+  0b10100101, 0b00000000,
+  0b10000001, 0b00000000,
+  0b10100101, 0b00000000,
+  0b10011001, 0b00000000,
+  0b01000010, 0b00000000,
+  0b00111100, 0b00000000
+};
+
+int currentRotation = 2;
+
+void setup() {
+  Serial.begin(9600);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    while (true);
+  }
+  display.clearDisplay();
+  display.display();
+}
+
+void loop() {
+  currentRotation = (currentRotation == 0) ? 2 : 0;
+  display.setRotation(currentRotation);
+  display.clearDisplay();
+
+  // 1. Simple Text & Inverted Text
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.setTextColor(SSD1306_WHITE);
+  display.println("Normal Text");
+
+  display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);  
+  display.println("Colour Inverted Text");
+
+  display.setTextColor(SSD1306_WHITE); 
+
+  display.display();
+  delay(2000);
+
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(0, 0);
+  display.println("Big Txt");
+
+  display.setTextSize(1);
+  int num = 123;
+  display.setCursor(0, 20);
+  display.print("Dec: ");
+  display.println(num);
+  display.print("Hex: ");
+  display.println(num, HEX);
+
+  display.display();
+  delay(2000);
+
+  display.startscrollleft(0x00, 0x0F);
+  delay(2000);
+  display.stopscroll();
+
+  display.startscrolldiagright(0x00, 0x07);
+  delay(2000);
+  display.stopscroll();
+
+  display.clearDisplay();
+  int scale = 4;
+  int imgWidth = 16;
+  int imgHeight = 8;
+
+  for (int y = 0; y < imgHeight; y++) {
+    for (int x = 0; x < imgWidth; x++) {
+      byte row = pgm_read_byte(&smiley_bmp[y * 2 + (x / 8)]);
+      if (row & (1 << (7 - (x % 8)))) {
+        display.fillRect(30 + x * scale, 10 + y * scale, scale, scale, SSD1306_WHITE);
+      }
+    }
+  }
+
+  display.display();
+  delay(2000);
+
+  display.clearDisplay();
+  display.drawRect(10, 10, 50, 30, SSD1306_WHITE);
+  display.drawCircle(90, 32, 15, SSD1306_WHITE);
+  display.drawTriangle(20, 55, 30, 40, 40, 55, SSD1306_WHITE);
+  display.display();
+  delay(2000);
+}
+
+
+2D :: Touch screen
+// objective:   Interfacing a 2.4-inch TFT Touchscreen Shield with Arduino
+// Uno for Animated and Touch-Interactive Output
+
+#include <Adafruit_GFX.h>       // Graphics library
+#include <MCUFRIEND_kbv.h>      // TFT LCD library
+#include <TouchScreen.h>        // Touch library
+
+// TFT object
+MCUFRIEND_kbv tft;
+
+// Touchscreen calibration values (may differ for your shield)
+#define YP A3  // must be an analog pin
+#define XM A2  // must be an analog pin
+#define YM 9   // digital pin
+#define XP 8   // digital pin
+
+// Touchscreen parameters
+#define TS_MINX 120
+#define TS_MAXX 900
+#define TS_MINY 70
+#define TS_MAXY 920
+#define MINPRESSURE 200
+#define MAXPRESSURE 1000
+
+TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+
+int ballX = 50, ballY = 50;
+int dx = 3, dy = 2; // ball speed
+
+void setup() {
+  Serial.begin(9600);
+
+  uint16_t ID = tft.readID();   // Auto-detect driver
+  if (ID == 0xD3D3) ID = 0x9481; // Some shields return 0xD3D3
+  tft.begin(ID);
+
+  tft.setRotation(1);   // Landscape mode
+  tft.fillScreen(BLACK);
+
+  tft.setTextColor(WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(40, 10);
+  tft.println("TFT Touch Demo");
+}
+
+void loop() {
+  // ---- Animated Ball ----
+  tft.fillCircle(ballX, ballY, 10, BLACK); // erase old ball
+  ballX += dx;
+  ballY += dy;
+
+  // Bounce on edges
+  if (ballX <= 10 || ballX >= 310) dx = -dx;
+  if (ballY <= 30 || ballY >= 230) dy = -dy;
+
+  tft.fillCircle(ballX, ballY, 10, RED); // draw new ball
+  delay(30);
+
+  // ---- Touch Detection ----
+  TSPoint p = ts.getPoint();
+  pinMode(XM, OUTPUT);
+  pinMode(YP, OUTPUT);
+
+  if (p.z > MINPRESSURE && p.z < MAXPRESSURE) {
+    // Map raw touch to screen coords
+    int x = map(p.x, TS_MINX, TS_MAXX, 0, tft.width());
+    int y = map(p.y, TS_MINY, TS_MAXY, 0, tft.height());
+
+    // Example: If user touches left/right, change background
+    if (x < 100) {
+      tft.fillScreen(BLUE);
+      tft.setCursor(40, 100);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(2);
+      tft.println("Touched LEFT!");
+      delay(500);
+    } else if (x > 220) {
+      tft.fillScreen(GREEN);
+      tft.setCursor(40, 100);
+      tft.setTextColor(BLACK);
+      tft.setTextSize(2);
+      tft.println("Touched RIGHT!");
+      delay(500);
+    }
+    // Redraw ball after touch event
+    tft.fillCircle(ballX, ballY, 10, RED);
+  }
+}
+
+
