@@ -192,31 +192,4 @@ BLYNK_WRITE(V3) { digitalWrite(RELAY3, param.asInt()); }
 BLYNK_WRITE(V4) { digitalWrite(RELAY4, param.asInt()); }
 
 
-/* Comment this out to disable prints and save space */
-#define BLYNK_PRINT Serial
-
-#include <ESP8266WiFi.h>
-#include <BlynkSimpleEsp8266.h>
-
-// Your WiFi credentials.
-// Set password to "" for open networks.
-char ssid[] = "moto g45 5G";
-char pass[] = "Sohan@345";
-
-void setup()
-{
-  // Debug console
-  Serial.begin(115200);
-  
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, "blynk.cloud", 80);
-  //Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass, IPAddress(192,168,1,100), 8080);
-}
-
-void loop()
-{
-  Blynk.run();
-  // You can inject your own code or combine it with other sketches.
-  // Check other examples on how to communicate with Blynk. Remember
-  // to avoid delay() function!
-}
 
