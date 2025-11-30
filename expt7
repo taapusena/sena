@@ -1,0 +1,77 @@
+# PROBLEM STATEMENT:
+# 7.8: Control Raspberry Pi Digital Outputs with Python by interfacing LEDs
+# with respective GPIO ports. 
+
+Algorithm
+1. Start
+2. Import Raspberry Pi GPIO library
+3. Import the sleep function from the time module
+4. Use physical pin numbering
+5. Set respective GPIO pin as an output pin and set initial value LOW
+6. Turn ON respective LEDs by sending HIGH to the respective GPIO pins
+7. Call delay or Sleep function for a specific time
+8. Turn OFF respective LEDs by sending LOW to the respective GPIO pins
+9. Call delay or Sleep function for a specific time
+10. Run program forever
+11. Stop
+
+
+import RPi.GPIO as GPIO 
+from time import sleep 
+
+GPIO.setmode(GPIO.BCM) 
+
+led_pins = [17, 22, 27] 
+
+for pin in led_pins: 
+    GPIO.setup(pin, GPIO.OUT) 
+
+while True: 
+    for pin in led_pins: 
+        GPIO.output(pin, GPIO.HIGH) 
+        sleep(1) 
+    for pin in led_pins: 
+        GPIO.output(pin, GPIO.LOW) 
+        sleep(1) 
+
+# PROBLEM STATEMENT:
+# 7.9: Control Raspberry Pi Digital input with Python by interfacing DHT11
+# sensor with respective GPIO ports and monitoring the Temperature and
+# humidity parameters on screen
+
+Algorithm
+1. Start
+2. Import Raspberry Pi GPIO library
+3. import Adafruit_DHT
+4. Use physical pin numbering
+5. Read the respective parameters Temperature and Humidity
+6. Print on screen
+7. Call delay or Sleep function for a specific time
+8. Run program forever
+9. Stop
+
+
+import RPi.GPIO as GPIO 
+import time 
+import urllib.request 
+import Adafruit_DHT 
+
+GPIO.setmode(GPIO.BCM) 
+
+# Sensor type
+sensor = Adafruit_DHT.DHT11
+
+# GPIO Pin where DHT11 DATA pin is connected (BCM numbering)
+DHT_PIN = 4    # Change this if you connected to another pin
+
+while True:
+    humidity, temperature = Adafruit_DHT.read_retry(sensor, DHT_PIN)
+
+    if humidity is not None and temperature is not None:
+        print(f"Temperature: {temperature:.1f}°C   Humidity: {humidity:.1f}%")
+    else:
+        print("Failed to read from DHT11 sensor. Trying again...")
+
+    time.sleep(2)
+
+
