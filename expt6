@@ -1,0 +1,872 @@
+#include "esp_camera.h"
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+#include "board_config.h"   // Your camera pin file
+
+const char *ssid = "";
+const char *password = "";
+
+// Create Web Server
+AsyncWebServer server(80);
+
+// ========== HTML PAGE USED IN THE UI ==========
+const char WebPage[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+<title>ESP32-CAM Smart Security</title>
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f4f7fb;
+}
+h1 {
+    color: #0b2545;
+    margin-top: 20px;
+}
+.container {
+    width: 720px;
+    margin: auto;
+}
+.btn {
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    color: white;
+    margin: 8px;
+    cursor: pointer;
+    border: none;
+}
+.start { background:#4CAF50; }
+.stop { background:#b71c1c; }
+.capture { background:#0288d1; }
+.unlock { background:#fbc02d; color:black; }
+.statusbar {
+    background:#4CAF50;
+    padding:12px;
+    margin-top:15px;
+    font-weight:bold;
+    width:90%;
+    border-radius:6px;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+    <h1>Vishwakarma Institute of Information Technology</h1>
+    <h2>IoT Experiment 6 – ESP32-CAM for Security</h2>
+
+    <h3>Name: Sohan Anand Fulzele | Roll No: 311001</h3>
+
+    <div class="container">
+        <img id="stream" src="stream" width="480">
+
+        <br><br>
+
+        <button class="btn start" onclick="startStream()">Start</button>
+        <button class="btn stop" onclick="stopStream()">Stop</button>
+        <button class="btn capture" onclick="capturePhoto()">Capture</button>
+        <button class="btn unlock" onclick="unlockDoor()">Unlock Door</button>
+
+        <div id="status" class="statusbar">
+            ✔ Face Matched. ACCESS GRANTED! Door Unlocked. 🔓
+        </div>
+    </div>
+
+<script>
+function startStream(){
+    document.getElementById("stream").src = "stream";
+}
+function stopStream(){
+    document.getElementById("stream").src = "";
+}
+function capturePhoto(){
+    fetch("/capture");
+    alert("Photo Captured!");
+}
+function unlockDoor(){
+    fetch("/unlock");
+    alert("Door Unlocked!");
+}
+</script>
+
+</body>
+</html>
+)rawliteral";
+
+// ===================================================
+//             CAMERA CONFIG INITIALIZATION
+// ===================================================
+
+void setupCamera() {
+    camera_config_t config;
+    config.ledc_channel = LEDC_CHANNEL_0;
+    config.ledc_timer   = LEDC_TIMER_0;
+
+    config.pin_d0 = Y2_GPIO_NUM;
+    config.pin_d1 = Y3_GPIO_NUM;
+    config.pin_d2 = Y4_GPIO_NUM;
+    config.pin_d3 = Y5_GPIO_NUM;
+    config.pin_d4 = Y6_GPIO_NUM;
+    config.pin_d5 = Y7_GPIO_NUM;
+    config.pin_d6 = Y8_GPIO_NUM;
+    config.pin_d7 = Y9_GPIO_NUM;
+
+    config.pin_xclk = XCLK_GPIO_NUM;
+    config.pin_pclk = PCLK_GPIO_NUM;
+    config.pin_vsync = VSYNC_GPIO_NUM;
+    config.pin_href = HREF_GPIO_NUM;
+
+    config.pin_sscb_sda = SIOD_GPIO_NUM;
+    config.pin_sscb_scl = SIOC_GPIO_NUM;
+    config.pin_pwdn = PWDN_GPIO_NUM;
+    config.pin_reset = RESET_GPIO_NUM;
+
+    config.xclk_freq_hz = 20000000;
+    config.pixel_format = PIXFORMAT_JPEG;
+
+    if (psramFound()) {
+      config.frame_size = FRAMESIZE_VGA;
+      config.jpeg_quality = 10;
+      config.fb_count = 2;
+    } else {
+      config.frame_size = FRAMESIZE_SVGA;
+      config.jpeg_quality = 12;
+      config.fb_count = 1;
+    }
+
+    // Init Camera
+    esp_err_t err = esp_camera_init(&config);
+    if (err != ESP_OK) {
+      Serial.printf("Camera Init Failed! 0x%x", err);
+      return;
+    }
+}
+
+
+// ===================================================
+//                 SERVER & ROUTES
+// ===================================================
+
+void startServer() {
+  
+  // Main Webpage
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send_P(200, "text/html", WebPage);
+  });
+
+  // JPEG Stream
+  server.on("/stream", HTTP_GET, [](AsyncWebServerRequest *request){
+        AsyncWebServerResponse *response = esp_camera_stream_response();
+        request->send(response);
+  });
+
+  // Capture Image
+  server.on("/capture", HTTP_GET, [](AsyncWebServerRequest *request){
+        camera_fb_t *fb = esp_camera_fb_get();
+        if (!fb) {
+            request->send(500, "text/plain", "Camera Capture Failed");
+            return;
+        }
+        request->send_P(200, "image/jpeg", fb->buf, fb->len);
+        esp_camera_fb_return(fb);
+  });
+
+  // Unlock Door Logic (simulate)
+  server.on("/unlock", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.println("Door Unlocked!");
+        request->send(200, "text/plain", "Door Unlocked!");
+  });
+
+  server.begin();
+}
+
+
+// ===================================================
+//                       SETUP
+// ===================================================
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println();
+
+    setupCamera();
+
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting");
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(300);
+        Serial.print(".");
+    }
+    Serial.println("\nConnected!");
+    Serial.println(WiFi.localIP());
+
+    startServer();
+}
+
+// ===================================================
+void loop() {}
+
+
+
+
+
+
+
+
+
+part2
+
+#include "esp_camera.h"
+#include <WiFi.h>
+#include "img_converters.h"
+#include "esp_timer.h"
+#include "Arduino.h"
+#include "fb_gfx.h"
+#include "fd_forward.h"
+#include "fr_forward.h"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+#include "camera_pins.h"
+
+// ================= WiFi Login ====================
+const char* ssid = "";
+const char* password = "";
+
+// ============ Door Unlock Relay Pin ==============
+#define UNLOCK_PIN 12     // connect relay/LED here
+
+// ================= Face Recognition ==============
+static face_id_list id_list = {
+    .count = 1,
+    .size = 1,
+    .id_list = nullptr
+};
+
+static face_id_node id0;
+
+// Forward declarations
+esp_err_t stream_handler(httpd_req_t *req);
+esp_err_t capture_handler(httpd_req_t *req);
+esp_err_t unlock_handler(httpd_req_t *req);
+
+
+// ==================== Webpage =====================
+static const char MAIN_page[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+<title>ESP32-CAM Smart Security</title>
+<style>
+body { font-family:Arial; text-align:center; background:#f4f7fb; }
+h1 { color:#0b2545; margin-top:20px; }
+.container { width:720px; margin:auto; }
+.btn {
+  padding:10px 22px; border-radius:6px; font-size:15px;
+  font-weight:bold; color:white; margin:8px; cursor:pointer; border:none;
+}
+.start { background:#4CAF50; }
+.stop { background:#b71c1c; }
+.capture { background:#0288d1; }
+.unlock { background:#fbc02d; color:black; }
+.statusbar {
+  background:#4CAF50; padding:12px; margin-top:15px;
+  font-weight:bold; width:90%; border-radius:6px;
+  color:white; margin-left:auto; margin-right:auto;
+}
+</style>
+</head>
+
+<body>
+<h1>Vishwakarma Institute of Information Technology</h1>
+<h2>IoT Experiment 6 – ESP32-CAM for Security</h2>
+<h3>Name: Sohan Anand Fulzele | Roll No: 311001</h3>
+
+<div class="container">
+  <img id="stream" src="/stream" width="480">
+
+  <br><br>
+
+  <button class="btn start" onclick="startStream()">Start</button>
+  <button class="btn stop" onclick="stopStream()">Stop</button>
+  <button class="btn capture" onclick="capturePhoto()">Capture</button>
+  <button class="btn unlock" onclick="unlock()">Unlock Door</button>
+
+  <div id="status" class="statusbar">
+    ✔ Face Matched. ACCESS GRANTED! Door Unlocked. 🔓
+  </div>
+</div>
+
+<script>
+function startStream(){ document.getElementById("stream").src="/stream"; }
+function stopStream(){ document.getElementById("stream").src=""; }
+function capturePhoto(){ window.open("/capture", "_blank"); }
+function unlock(){ fetch("/unlock"); alert("Door Unlock Triggered"); }
+</script>
+
+</body>
+</html>
+)rawliteral";
+
+// ======================= Face Rec =========================
+static mtmn_config_t mtmn_config = {
+  .min_face = 80,
+  .pyramid = true,
+  .threshold = {
+      .p_threshold = 0.6,
+      .r_threshold = 0.7,
+      .o_threshold = 0.7,
+  }
+};
+
+// ==========================================================
+//                 HTTP Server Functions
+// ==========================================================
+
+// ----------- Stream Handler (Live Video) ------------
+esp_err_t stream_handler(httpd_req_t *req) {
+  camera_fb_t * fb = NULL;
+  esp_err_t res = ESP_OK;
+
+  res = httpd_resp_set_type(req, "multipart/x-mixed-replace; boundary=frame");
+
+  while(true) {
+    fb = esp_camera_fb_get();
+    if (!fb) break;
+
+    // Face Detection
+    dl_matrix3du_t *image_matrix = dl_matrix3du_alloc(1, fb->width, fb->height, 3);
+    if (image_matrix) {
+      fmt2rgb888(fb->buf, fb->len, fb->format, image_matrix->item);
+      box_array_t *faces = face_detect(image_matrix, &mtmn_config);
+
+      if (faces && faces->len > 0) {
+        Serial.println("Face detected!");
+
+        // Try recognizing
+        int match = recognize_face(&id_list, image_matrix, faces);
+
+        if (match >= 0) {
+          Serial.println("FACE MATCHED → Unlocking!");
+
+          digitalWrite(UNLOCK_PIN, HIGH);
+          delay(2000);
+          digitalWrite(UNLOCK_PIN, LOW);
+        }
+      }
+      dl_matrix3du_free(image_matrix);
+    }
+
+    // Send frame
+    char buf[64];
+    size_t hlen = snprintf((char *)buf, 64,
+                     "--frame\r\nContent-Type: image/jpeg\r\n\r\n");
+    httpd_resp_send_chunk(req, (const char *)buf, hlen);
+    httpd_resp_send_chunk(req, (const char *)fb->buf, fb->len);
+    httpd_resp_send_chunk(req, "\r\n", 2);
+
+    esp_camera_fb_return(fb);
+  }
+
+  return res;
+}
+
+
+// ------------ Snapshot Handler -------------------
+esp_err_t capture_handler(httpd_req_t *req){
+  camera_fb_t * fb = esp_camera_fb_get();
+  if (!fb) {
+    httpd_resp_send_500(req);
+    return ESP_FAIL;
+  }
+
+  httpd_resp_set_type(req, "image/jpeg");
+  httpd_resp_send(req, (const char *)fb->buf, fb->len);
+
+  esp_camera_fb_return(fb);
+  return ESP_OK;
+}
+
+
+// ------------ Unlock Handler -------------------
+esp_err_t unlock_handler(httpd_req_t *req){
+  digitalWrite(UNLOCK_PIN, HIGH);
+  delay(2000);
+  digitalWrite(UNLOCK_PIN, LOW);
+
+  httpd_resp_sendstr(req, "Door Unlocked!");
+  return ESP_OK;
+}
+
+
+// ======================= SERVER SETUP =====================
+httpd_handle_t start_webserver(void){
+  httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+  httpd_handle_t server = NULL;
+
+  if (httpd_start(&server, &config) == ESP_OK) {
+
+    // Main Page
+    httpd_uri_t main_page = {
+      .uri = "/",
+      .method = HTTP_GET,
+      .handler = [](httpd_req_t *req){
+        httpd_resp_set_type(req, "text/html");
+        return httpd_resp_send(req, MAIN_page, strlen(MAIN_page));
+      }
+    };
+    httpd_register_uri_handler(server, &main_page);
+
+    // Stream
+    httpd_uri_t stream_uri = {
+      .uri = "/stream",
+      .method = HTTP_GET,
+      .handler = stream_handler
+    };
+    httpd_register_uri_handler(server, &stream_uri);
+
+    // Capture
+    httpd_uri_t capture_uri = {
+      .uri = "/capture",
+      .method = HTTP_GET,
+      .handler = capture_handler
+    };
+    httpd_register_uri_handler(server, &capture_uri);
+
+    // Unlock
+    httpd_uri_t unlock_uri = {
+      .uri = "/unlock",
+      .method = HTTP_GET,
+      .handler = unlock_handler
+    };
+    httpd_register_uri_handler(server, &unlock_uri);
+  }
+
+  return server;
+}
+
+
+// ======================== SETUP ============================
+void setup(){
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
+  Serial.begin(115200);
+  Serial.setDebugOutput(true);
+
+  // Configure unlock relay pin
+  pinMode(UNLOCK_PIN, OUTPUT);
+  digitalWrite(UNLOCK_PIN, LOW);
+
+  // Camera Config
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer   = LEDC_TIMER_0;
+
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  if(psramFound()){
+    config.frame_size = FRAMESIZE_VGA;
+    config.jpeg_quality = 10;
+    config.fb_count = 2;
+  } else {
+    config.frame_size = FRAMESIZE_SVGA;
+    config.jpeg_quality = 12;
+    config.fb_count = 1;
+  }
+
+  // Init Camera
+  esp_err_t err = esp_camera_init(&config);
+  if (err != ESP_OK) {
+      Serial.printf("Camera init failed: 0x%x", err);
+      return;
+  }
+
+  // Add one dummy face ID for matching
+  id0.id = 0;
+  id_list.id_list = &id0;
+
+  // WiFi Connect
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+
+  while(WiFi.status() != WL_CONNECTED){
+    Serial.print(".");
+    delay(300);
+  }
+
+  Serial.println("\nWiFi Connected!");
+  Serial.println(WiFi.localIP());
+
+  start_webserver();
+}
+
+void loop(){}
+
+
+
+part 3
+#include "esp_camera.h"
+#include <WiFi.h>
+#include "img_converters.h"
+#include "esp_timer.h"
+#include "Arduino.h"
+#include "fb_gfx.h"
+#include "fd_forward.h"
+#include "fr_forward.h"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
+
+// AI Thinker Pins
+#include "camera_pins.h"
+
+// ================= WiFi Login ====================
+const char* ssid = "";        // your SSID
+const char* password = "";    // your password
+
+// ============ Door Unlock Relay Pin ==============
+#define UNLOCK_PIN 12     // connect relay/LED here
+
+// ================= Face Recognition ==============
+static face_id_list id_list = {
+    .count = 1,
+    .size = 1,
+    .id_list = nullptr
+};
+
+static face_id_node id0;
+
+// Forward declarations
+esp_err_t stream_handler(httpd_req_t *req);
+esp_err_t capture_handler(httpd_req_t *req);
+esp_err_t unlock_handler(httpd_req_t *req);
+esp_err_t enroll_handler(httpd_req_t *req);
+
+// ==================== Webpage =====================
+static const char MAIN_page[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+<title>ESP32-CAM Smart Security</title>
+<style>
+body { font-family:Arial; text-align:center; background:#f4f7fb; }
+h1 { color:#0b2545; margin-top:20px; }
+.container { width:720px; margin:auto; }
+.btn {
+  padding:10px 22px; border-radius:6px; font-size:15px;
+  font-weight:bold; color:white; margin:8px; cursor:pointer; border:none;
+}
+.start { background:#4CAF50; }
+.stop { background:#b71c1c; }
+.capture { background:#0288d1; }
+.enroll { background:#673ab7; }
+.unlock { background:#fbc02d; color:black; }
+.statusbar {
+  background:#4CAF50; padding:12px; margin-top:15px;
+  font-weight:bold; width:90%; border-radius:6px;
+  color:white; margin-left:auto; margin-right:auto;
+}
+</style>
+</head>
+
+<body>
+<h1>Vishwakarma Institute of Information Technology</h1>
+<h2>IoT Experiment 6 – ESP32-CAM for Security</h2>
+<h3>Name: Sohan Anand Fulzele | Roll No: 311001</h3>
+
+<div class="container">
+  <img id="stream" src="/stream" width="480">
+
+  <br><br>
+
+  <button class="btn start" onclick="startStream()">Start</button>
+  <button class="btn stop" onclick="stopStream()">Stop</button>
+  <button class="btn capture" onclick="capturePhoto()">Capture</button>
+  <button class="btn enroll" onclick="startEnroll()">Enroll Face</button>
+  <button class="btn unlock" onclick="unlock()">Unlock Door</button>
+
+  <div id="status" class="statusbar">
+    ✔ Face Matched. ACCESS GRANTED! Door Unlocked. 🔓
+  </div>
+</div>
+
+<script>
+function startStream(){ document.getElementById("stream").src="/stream"; }
+function stopStream(){ document.getElementById("stream").src=""; }
+function capturePhoto(){ window.open("/capture", "_blank"); }
+function unlock(){ fetch("/unlock"); alert("Door Unlock Triggered"); }
+function startEnroll(){ fetch("/enroll"); alert("Face Enrollment Started.\nLook at the camera."); }
+</script>
+
+</body>
+</html>
+)rawliteral";
+
+// ==================== Face Detection =====================
+static mtmn_config_t mtmn_config = {
+  .min_face = 80,
+  .pyramid = true,
+  .threshold = {
+      .p_threshold = 0.6,
+      .r_threshold = 0.7,
+      .o_threshold = 0.7,
+  }
+};
+
+// ==========================================================
+//                 HTTP Server Functions
+// ==========================================================
+
+// ----------- Stream Handler (Live Video) ------------
+esp_err_t stream_handler(httpd_req_t *req) {
+  camera_fb_t * fb = NULL;
+  esp_err_t res = ESP_OK;
+
+  res = httpd_resp_set_type(req,
+      "multipart/x-mixed-replace; boundary=frame");
+
+  while(true) {
+    fb = esp_camera_fb_get();
+    if (!fb) break;
+
+    // Face detection
+    dl_matrix3du_t *image_matrix =
+      dl_matrix3du_alloc(1, fb->width, fb->height, 3);
+
+    if (image_matrix) {
+      fmt2rgb888(fb->buf, fb->len, fb->format,
+                 image_matrix->item);
+
+      box_array_t *faces = face_detect(image_matrix, &mtmn_config);
+
+      if (faces && faces->len > 0) {
+
+        // Recognize the face
+        int match = recognize_face(&id_list, image_matrix, faces);
+
+        if (match >= 0) {
+          Serial.println("FACE MATCHED → Unlocking!");
+
+          digitalWrite(UNLOCK_PIN, HIGH);
+          delay(2000);
+          digitalWrite(UNLOCK_PIN, LOW);
+        }
+      }
+
+      dl_matrix3du_free(image_matrix);
+    }
+
+    // send frame
+    char buf[64];
+    size_t hlen = snprintf((char *)buf, 64,
+      "--frame\r\nContent-Type: image/jpeg\r\n\r\n");
+
+    httpd_resp_send_chunk(req, buf, hlen);
+    httpd_resp_send_chunk(req,
+      (const char *)fb->buf, fb->len);
+    httpd_resp_send_chunk(req, "\r\n", 2);
+
+    esp_camera_fb_return(fb);
+  }
+
+  return res;
+}
+
+// ------------ Snapshot Handler -------------------
+esp_err_t capture_handler(httpd_req_t *req){
+  camera_fb_t * fb = esp_camera_fb_get();
+  if (!fb) {
+    httpd_resp_send_500(req);
+    return ESP_FAIL;
+  }
+
+  httpd_resp_set_type(req, "image/jpeg");
+  httpd_resp_send(req,
+        (const char *)fb->buf, fb->len);
+
+  esp_camera_fb_return(fb);
+  return ESP_OK;
+}
+
+// ------------ Unlock Handler -------------------
+esp_err_t unlock_handler(httpd_req_t *req){
+  digitalWrite(UNLOCK_PIN, HIGH);
+  delay(2000);
+  digitalWrite(UNLOCK_PIN, LOW);
+
+  httpd_resp_sendstr(req, "Door Unlocked!");
+  return ESP_OK;
+}
+
+// ------------ Enroll Handler -------------------
+esp_err_t enroll_handler(httpd_req_t *req){
+  httpd_resp_set_type(req, "text/plain");
+
+  Serial.println("=== FACE ENROLLMENT STARTED ===");
+
+  sensor_t * s = esp_camera_sensor_get();
+  s->set_framesize(s, FRAMESIZE_QVGA);
+
+  int result = face_enroll(&id_list, 0);
+
+  if (result == ESP_OK) {
+    Serial.println("=== ENROLLMENT SUCCESS ===");
+    httpd_resp_sendstr(req, "Enrollment OK");
+  } else {
+    Serial.println("=== ENROLLMENT FAILED ===");
+    httpd_resp_sendstr(req, "Enrollment FAILED");
+  }
+
+  return ESP_OK;
+}
+
+// ======================= SERVER SETUP =====================
+httpd_handle_t start_webserver(void){
+  httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+  httpd_handle_t server = NULL;
+
+  if (httpd_start(&server, &config) == ESP_OK) {
+
+    // Main Page
+    httpd_uri_t main_page = {
+      .uri = "/",
+      .method = HTTP_GET,
+      .handler = [](httpd_req_t *req){
+          httpd_resp_set_type(req,"text/html");
+          return httpd_resp_send(req,
+                 MAIN_page, strlen(MAIN_page));
+      }
+    };
+    httpd_register_uri_handler(server, &main_page);
+
+    // Stream
+    httpd_uri_t stream_uri = {
+      .uri = "/stream",
+      .method = HTTP_GET,
+      .handler = stream_handler
+    };
+    httpd_register_uri_handler(server, &stream_uri);
+
+    // Capture
+    httpd_uri_t capture_uri = {
+      .uri = "/capture",
+      .method = HTTP_GET,
+      .handler = capture_handler
+    };
+    httpd_register_uri_handler(server, &capture_uri);
+
+    // Unlock
+    httpd_uri_t unlock_uri = {
+      .uri = "/unlock",
+      .method = HTTP_GET,
+      .handler = unlock_handler
+    };
+    httpd_register_uri_handler(server, &unlock_uri);
+
+    // Enroll
+    httpd_uri_t enroll_uri = {
+      .uri = "/enroll",
+      .method = HTTP_GET,
+      .handler = enroll_handler
+    };
+    httpd_register_uri_handler(server, &enroll_uri);
+  }
+
+  return server;
+}
+
+// ======================== SETUP ============================
+void setup(){
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
+
+  Serial.begin(115200);
+
+  pinMode(UNLOCK_PIN, OUTPUT);
+  digitalWrite(UNLOCK_PIN, LOW);
+
+  // Camera Config
+  camera_config_t config;
+  config.ledc_channel = LEDC_CHANNEL_0;
+  config.ledc_timer   = LEDC_TIMER_0;
+
+  config.pin_d0 = Y2_GPIO_NUM;
+  config.pin_d1 = Y3_GPIO_NUM;
+  config.pin_d2 = Y4_GPIO_NUM;
+  config.pin_d3 = Y5_GPIO_NUM;
+  config.pin_d4 = Y6_GPIO_NUM;
+  config.pin_d5 = Y7_GPIO_NUM;
+  config.pin_d6 = Y8_GPIO_NUM;
+  config.pin_d7 = Y9_GPIO_NUM;
+
+  config.pin_xclk = XCLK_GPIO_NUM;
+  config.pin_pclk = PCLK_GPIO_NUM;
+  config.pin_vsync = VSYNC_GPIO_NUM;
+  config.pin_href = HREF_GPIO_NUM;
+
+  config.pin_sscb_sda = SIOD_GPIO_NUM;
+  config.pin_sscb_scl = SIOC_GPIO_NUM;
+
+  config.pin_pwdn = PWDN_GPIO_NUM;
+  config.pin_reset = RESET_GPIO_NUM;
+
+  config.xclk_freq_hz = 20000000;
+  config.pixel_format = PIXFORMAT_JPEG;
+
+  if(psramFound()){
+    config.frame_size = FRAMESIZE_VGA;
+    config.jpeg_quality = 10;
+    config.fb_count = 2;
+  } else {
+    config.frame_size = FRAMESIZE_QVGA;
+    config.jpeg_quality = 12;
+    config.fb_count = 1;
+  }
+
+  if (esp_camera_init(&config) != ESP_OK) {
+    Serial.println("Camera init failed!");
+    return;
+  }
+
+  id0.id = 0;
+  id_list.id_list = &id0;
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting");
+
+  while(WiFi.status()!=WL_CONNECTED){
+    Serial.print(".");
+    delay(300);
+  }
+
+  Serial.println("\nWiFi Connected!");
+  Serial.println(WiFi.localIP());
+
+  start_webserver();
+}
+
+void loop(){}
