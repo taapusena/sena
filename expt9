@@ -1,6 +1,3 @@
-/* Arnav Vinayak Kulkarni
-22311611/311059
-TY ENTC A3
 
  PROBLEM STATEMENT:
 Install the lightweight web framework Flask and set up a basic web
@@ -9,6 +6,9 @@ Write an Python program to control the various devices connected to
 GPIO Port of Raspberry Pi through Web server.*/
 
 
+sudo python app.py
+
+app.py
 import RPi.GPIO as GPIO 
 from flask import Flask, render_template, request 
  
@@ -84,7 +84,7 @@ def ac on(deviceName, ac on):
 if __name__ == "__main__": 
     app.run(host="0.0.0.0", debug=True) 
  
- 
+index.html 
 //html 
 <!DOCTYPE html> 
 <html lang="en"> 
@@ -164,7 +164,9 @@ Pi GPIO pins.</p>
   </main> 
 </body> 
 </html> 
- 
+
+
+style.css
 //css 
 /* ============================== 
    Vishwakarma Institutes GPIO Web Server (Enhanced UI) 
