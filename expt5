@@ -1,0 +1,125 @@
+5::Build an nodeMCU ESP8266 based web-server and demonstrate the
+application to control the LEDs or relay connected to respective GPIO
+ports of ESP6266 NodeMCU.
+
+#include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
+
+/* Soft AP credentials */
+const char* ssid = "NodeMCU";
+const char* password = "12345678";
+
+/* Static IP configuration */
+IPAddress local_ip(192, 168, 1, 1);
+IPAddress gateway(192, 168, 1, 1);
+IPAddress subnet(255, 255, 255, 0);
+
+ESP8266WebServer server(80);
+
+/* LED Pins */
+uint8_t LED1pin = D7;
+bool LED1status = LOW;
+
+uint8_t LED2pin = D6;
+bool LED2status = LOW;
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(LED1pin, OUTPUT);
+  pinMode(LED2pin, OUTPUT);
+
+  /* Start WiFi AP */
+  WiFi.softAP(ssid, password);
+  WiFi.softAPConfig(local_ip, gateway, subnet);
+
+  delay(100);
+
+  /* Route handlers */
+  server.on("/", handle_OnConnect);
+  server.on("/led1on", handle_led1on);
+  server.on("/led1off", handle_led1off);
+  server.on("/led2on", handle_led2on);
+  server.on("/led2off", handle_led2off);
+  server.onNotFound(handle_NotFound);
+
+  server.begin();
+  Serial.println("HTTP server started");
+}
+
+void loop() {
+  server.handleClient();
+
+  digitalWrite(LED1pin, LED1status ? HIGH : LOW);
+  digitalWrite(LED2pin, LED2status ? HIGH : LOW);
+}
+
+void handle_OnConnect() {
+  LED1status = LOW;
+  LED2status = LOW;
+
+  Serial.println("GPIO7 Status: OFF | GPIO6 Status: OFF");
+  server.send(200, "text/html", SendHTML(LED1status, LED2status));
+}
+
+void handle_led1on() {
+  LED1status = HIGH;
+  Serial.println("GPIO7 Status: ON");
+  server.send(200, "text/html", SendHTML(LED1status, LED2status));
+}
+
+void handle_led1off() {
+  LED1status = LOW;
+  Serial.println("GPIO7 Status: OFF");
+  server.send(200, "text/html", SendHTML(LED1status, LED2status));
+}
+
+void handle_led2on() {
+  LED2status = HIGH;
+  Serial.println("GPIO6 Status: ON");
+  server.send(200, "text/html", SendHTML(LED1status, LED2status));
+}
+
+void handle_led2off() {
+  LED2status = LOW;
+  Serial.println("GPIO6 Status: OFF");
+  server.send(200, "text/html", SendHTML(LED1status, LED2status));
+}
+
+void handle_NotFound() {
+  server.send(404, "text/plain", "Not found");
+}
+
+
+/* ------------------------
+   HTML PAGE GENERATION
+   ------------------------ */
+String SendHTML(bool led1stat, bool led2stat) {
+  String ptr = "<!DOCTYPE html><html><head>";
+  ptr += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+  ptr += "<title>LED Control</title>";
+  
+  ptr += "<style>";
+  ptr += "html { font-family: Helvetica; text-align: center;}";
+  ptr += "body { margin-top: 50px;}";
+  ptr += ".button { width: 80px; padding: 13px 30px; font-size: 25px; color: white; border-radius: 4px; text-decoration: none; display: block; margin: 20px auto;}";
+  ptr += ".button-on { background-color: #1abc9c; }";
+  ptr += ".button-off { background-color: #34495e; }";
+  ptr += "</style></head><body>";
+  
+  ptr += "<h1>ESP8266 Web Server</h1>";
+  ptr += "<h3>Using Access Point (AP) Mode</h3>";
+
+  if (led1stat)
+    ptr += "<p>LED1 Status: ON</p><a class=\"button button-off\" href=\"/led1off\">OFF</a>";
+  else
+    ptr += "<p>LED1 Status: OFF</p><a class=\"button button-on\" href=\"/led1on\">ON</a>";
+
+  if (led2stat)
+    ptr += "<p>LED2 Status: ON</p><a class=\"button button-off\" href=\"/led2off\">OFF</a>";
+  else
+    ptr += "<p>LED2 Status: OFF</p><a class=\"button button-on\" href=\"/led2on\">ON</a>";
+
+  ptr += "</body></html>";
+  return ptr;
+}
