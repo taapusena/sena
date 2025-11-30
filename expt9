@@ -1,0 +1,370 @@
+/* Arnav Vinayak Kulkarni
+22311611/311059
+TY ENTC A3
+
+ PROBLEM STATEMENT:
+Install the lightweight web framework Flask and set up a basic web
+server with different pages using Python, HTML, and CSS.
+Write an Python program to control the various devices connected to
+GPIO Port of Raspberry Pi through Web server.*/
+
+
+import RPi.GPIO as GPIO 
+from flask import Flask, render_template, request 
+ 
+app = Flask(__name__) 
+GPIO.setmode(GPIO.BCM) 
+GPIO.setwarnings(False) 
+ 
+# Define GPIO pins for LEDs 
+ledRed = 13 
+ledYellow = 19 
+ledGreen = 26 
+ 
+# Ini al states 
+ledRedSts = 0 
+ledYellowSts = 0 
+ledGreenSts = 0 
+ 
+# GPIO setup 
+GPIO.setup(ledRed, GPIO.OUT) 
+GPIO.setup(ledYellow, GPIO.OUT) 
+GPIO.setup(ledGreen, GPIO.OUT) 
+ 
+GPIO.output(ledRed, GPIO.LOW) 
+GPIO.output(ledYellow, GPIO.LOW) 
+GPIO.output(ledGreen, GPIO.LOW) 
+ 
+ 
+@app.route("/") 
+def index(): 
+    # Read GPIO pin states 
+    ledRedSts = GPIO.input(ledRed) 
+    ledYellowSts = GPIO.input(ledYellow) 
+    ledGreenSts = GPIO.input(ledGreen) 
+ 
+    # Data passed to the HTML template 
+    templateData = { 
+        'ledRed': ledRedSts, 
+        'ledYellow': ledYellowSts, 
+        'ledGreen': ledGreenSts 
+    } 
+    return render_template('index.html', **templateData) 
+ 
+ 
+@app.route("/<deviceName>/<ac on>") 
+def ac on(deviceName, ac on): 
+    # Match device name to GPIO pin 
+    if deviceName == "ledRed": 
+        actuator = ledRed 
+    if deviceName == "ledYellow": 
+        actuator = ledYellow 
+    if deviceName == "ledGreen": 
+        actuator = ledGreen 
+ 
+    # Turn ON/OFF based on ac on 
+    if ac on == "on": 
+        GPIO.output(actuator, GPIO.HIGH) 
+    if ac on == "off": 
+        GPIO.output(actuator, GPIO.LOW) 
+ 
+    # Read updated pin states 
+    ledRedSts = GPIO.input(ledRed) 
+    ledYellowSts = GPIO.input(ledYellow) 
+    ledGreenSts = GPIO.input(ledGreen) 
+ 
+    templateData = { 
+        'ledRed': ledRedSts, 
+        'ledYellow': ledYellowSts, 
+        'ledGreen': ledGreenSts 
+    } 
+    return render_template('index.html', **templateData) 
+ 
+ 
+if __name__ == "__main__": 
+    app.run(host="0.0.0.0", debug=True) 
+ 
+ 
+//html 
+<!DOCTYPE html> 
+<html lang="en"> 
+<head> 
+  <meta charset="UTF-8" /> 
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+  < title>Experiment 9 - GPIO Web Server</ title> 
+ 
+  <!-- Linking External CSS --> 
+  <link rel="stylesheet" href="{{ url_for('sta c', filename='style.css') }}"> 
+</head> 
+ 
+<body> 
+  <main class="container"> 
+    <!-- Top Institute Name --> 
+    <div class="college-name"> 
+      <h1>Vishwakarma Institute of Information Technology</h1> 
+    </div> 
+ 
+    <!-- Header Sec on --> 
+    <header class="header"> 
+      <h2 class=" title">Experiment 9 — Raspberry Pi GPIO Web Server</h2> 
+      <p class="subtitle">Flask-based interactive web interface to control LEDs</p> 
+      <hr class="divider"> 
+    </header> 
+ 
+    <!-- Student Details --> 
+    <sec on class="meta-card"> 
+      <h2 class="sec on-heading">Student Information</h2> 
+      <div class="details-grid"> 
+        <div><strong>Name:</strong> Arnav V. Kulkarni</div> 
+        <div><strong>Faculty:</strong> Prof. Prawin Gawande</div> 
+        <div><strong>Roll No:</strong> 311059</div> 
+        <div><strong>PRN:</strong> 22311611</div> 
+        <div><strong>Experiment No:</strong> 9</div> 
+        <div><strong>Institute:</strong> Vishwakarma Institute of Information Technology</div> 
+      </div> 
+    </sec on> 
+ 
+    <!-- LED Control Section --> 
+    <sec on class="content-card"> 
+      <h2 class="content-title">LED Control Panel</h2> 
+      <p class="content-desc">Use the buttons below to control the LEDs connected to the Raspberry 
+Pi GPIO pins.</p> 
+ 
+      <div class="led-control"> 
+        <div class="led-row"> 
+          <span class="led-label red"> Red LED</span> 
+          <div class="led-ac ons"> 
+            <a href="/ledRed/on" class="btn">Turn ON</a> 
+            <a href="/ledRed/off" class="btn btn-ghost">Turn OFF</a> 
+          </div> 
+        </div> 
+ 
+        <div class="led-row"> 
+          <span class="led-label yellow"> Yellow LED</span> 
+          <div class="led-ac ons"> 
+            <a href="/ledYellow/on" class="btn">Turn ON</a> 
+            <a href="/ledYellow/off" class="btn btn-ghost">Turn OFF</a> 
+          </div> 
+        </div> 
+ 
+        <div class="led-row"> 
+          <span class="led-label green"> Green LED</span> 
+          <div class="led-ac ons"> 
+            <a href="/ledGreen/on" class="btn">Turn ON</a> 
+            <a href="/ledGreen/off" class="btn btn-ghost">Turn OFF</a> 
+          </div> 
+        </div> 
+      </div> 
+    </sec on> 
+ 
+    <!-- Footer --> 
+    <footer class="footer"> 
+      <p>© Vishwakarma Institutes | Flask Web Server | Raspberry Pi Experiment 9</p> 
+    </footer> 
+  </main> 
+</body> 
+</html> 
+ 
+//css 
+/* ============================== 
+   Vishwakarma Institutes GPIO Web Server (Enhanced UI) 
+   ============================== */ 
+ 
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+} 
+ 
+body { 
+  font-family: "Poppins", system-ui, sans-serif; 
+  background: linear-gradient(160deg, #e3f2fd, #ede7f6); 
+  color: #1a1a2e; 
+  line-height: 1.6; 
+  anima on: fadeInBody 1s ease-in-out; 
+} 
+ 
+.container { 
+  max-width: 940px; 
+  margin: 40px auto; 
+  padding: 24px; 
+} 
+ 
+/* ---------- College Name ---------- */ 
+.college-name { 
+  text-align: center; 
+  background: linear-gradient(90deg, #6a11cb, #2575fc); 
+  color: white; 
+  padding: 18px 10px; 
+  border-radius: 14px; 
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); 
+  margin-bo om: 24px; 
+  anima on: fadeInDown 1s ease; 
+} 
+ 
+.college-name h1 { 
+  font-size: 25px; 
+  font-weight: 700; 
+  le er-spacing: 0.4px; 
+} 
+ 
+/* ---------- Header Sec on ---------- */ 
+.header { 
+  text-align: center; 
+  margin-bo om: 30px; 
+} 
+ 
+. tle { 
+  font-size: 26px; 
+  font-weight: 700; 
+  color: #6a11cb; 
+  margin-top: 8px; 
+  anima on: fadeInUp 1s ease; 
+} 
+ 
+.sub tle { 
+  font-size: 15px; 
+  color: #5c657a; 
+  margin-top: 6px; 
+  anima on: fadeInUp 1.2s ease; 
+} 
+ 
+.divider { 
+  margin: 18px auto; 
+  width: 60%; 
+  border: 0; 
+  border-top: 2px dashed #d7e1f1; 
+} 
+ 
+/* ---------- Cards ---------- */ 
+.meta-card, 
+.content-card { 
+  background: #ffffff; 
+  border-radius: 14px; 
+  padding: 26px; 
+  margin-bottom: 20px; 
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.07); 
+  transition: transform 0.3s ease, box-shadow 0.3s ease; 
+  anima on: fadeInCard 1s ease; 
+} 
+ 
+.meta-card:hover, 
+.content-card:hover { 
+  transform: translateY(-5px); 
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.1); 
+} 
+ 
+.sec on-heading { 
+  font-size: 18px; 
+  font-weight: 600; 
+  margin-bottom: 14px; 
+  color: #2575fc; 
+  border-le : 4px solid #6a11cb; 
+  padding-le : 8px; 
+} 
+ 
+.details-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+  gap: 10px; 
+  font-size: 14px; 
+  color: #333; 
+} 
+ 
+.content-tle { 
+  font-size: 18px; 
+  font-weight: 600; 
+  color: #6a11cb; 
+  margin-bottom: 10px; 
+} 
+ 
+.content-desc { 
+  font-size: 13px; 
+  color: #555f77; 
+  margin-bottom: 20px; 
+} 
+ 
+/* ---------- LED Control ---------- */ 
+.led-control { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 16px; 
+} 
+ 
+.led-row { 
+  display: flex; 
+  align-items: center; 
+  jus fy-content: space-between; 
+  gap: 12px; 
+  padding: 14px 0; 
+  border-top: 1px solid #e0e6f0; 
+} 
+ 
+.led-label { 
+  font-weight: 600; 
+  font-size: 15px; 
+} 
+ 
+.led-label.red { color: #e53935; } 
+.led-label.yellow { color: # c02d; } 
+.led-label.green { color: #43a047; } 
+ 
+.led-ac ons { 
+  display: flex; 
+  gap: 10px; 
+} 
+ 
+.btn { 
+  background: linear-gradient(90deg, #6a11cb, #2575fc); 
+  color: #fff; 
+  text-decora on: none; 
+  padding: 8px 18px; 
+  border-radius: 8px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  transition: all 0.25s ease; 
+  box-shadow: 0 3px 8px rgba(100, 100, 255, 0.3); 
+} 
+ 
+.btn:hover { 
+  background: linear-gradient(90deg, #2575fc, #6a11cb); 
+  transform: scale(1.07); 
+} 
+ 
+.btn-ghost { 
+  background: transparent; 
+  color: #1a1a2e; 
+  border: 1.8px solid #cfd7e3; 
+box-shadow: none; 
+} 
+.btn-ghost:hover { 
+background: #e9ebff; 
+border-color: #6a11cb; 
+color: #6a11cb; 
+} 
+/* ---------- Footer ---------- */ 
+.footer { 
+text-align: center; 
+margin-top: 22px; 
+font-size: 13px; 
+color: #6f7a8a; 
+padding-top: 12px; 
+border-top: 1px solid #dee4ef; 
+} 
+/* ---------- Anima ons ---------- */ 
+@keyframes fadeInUp { 
+from { opacity: 0; transform: translateY(20px); } 
+to { opacity: 1; transform: translateY(0); } 
+} 
+@keyframes fadeInDown { 
+from { opacity: 0; transform: translateY(-20px); } 
+to { opacity: 1; transform: translateY(0); } 
+} 
+@keyframes fadeInCard { 
+from { opacity: 0; transform: scale(0.97); } 
+to { opacity: 1; transform: scale(1); } 
+} 
+@keyframes fadeInBody { 
+from { opacity: 0; } 
+to { opacity: 1; } 
+}
